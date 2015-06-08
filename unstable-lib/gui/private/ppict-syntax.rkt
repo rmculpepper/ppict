@@ -10,7 +10,7 @@
 (define-syntax-class (fragment-sequence who xp-var rpss-var)
   #:commit
   #:local-conventions ([p (elem who)]
-                       #|[b (bind-fragment who)]|#
+                       [d (do-fragment who)]
                        [g (go-fragment who)]
                        [s (set-fragment who)]
                        [a (alt-fragment who)]
@@ -38,15 +38,9 @@
                                                   (make-rename-transformer #'#,xp-var)])
                              (ppict-go #,xp-var g.placer))])
                fs.code))
-  #|
-  (pattern (b . fs)
+  (pattern (d . fs)
            #:with code
-           #`(let*-values ([(b.var ...)
-                            (syntax-parameterize ([ppict-do-state
-                                                   (make-rename-transformer #'#,xp-var)])
-                              b.rhs)])
-               fs.code))
-  |#
+           #`(let () d.body ...  fs.code))
   (pattern (s . fs)
            #:with code
            #`(let*-values ([(#,xp-var picts)
@@ -72,12 +66,9 @@
            #:declare pl (expr/c #'placer? #:name "placer argument of #:go fragment")
            #:with placer #'pl.c))
 
-#|
-(define-splicing-syntax-class (bind-fragment who)
-  #:description "#:bind fragment"
-  (pattern (~seq #:bind vs:var/vars rhs:expr)
-           #:with (var ...) #'(vs.var ...)))
-|#
+(define-splicing-syntax-class (do-fragment who)
+  #:description "#:do fragment"
+  (pattern (~seq #:do [body:expr ...])))
 
 (define-splicing-syntax-class (set-fragment who)
   #:description "#:set fragment"

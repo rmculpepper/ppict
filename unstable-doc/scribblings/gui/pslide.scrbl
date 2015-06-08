@@ -33,6 +33,7 @@ compact notation for sequences of those two operations.
                                   (code:line #:set pict-expr)
                                   (code:line #:next)
                                   (code:line #:alt (ppict-do-fragment ...))
+                                  (code:line #:do [def-or-expr ...])
                                   (code:line elem-expr)])
               #:contracts ([base-expr pict?]
                            [placer-expr placer?]
@@ -53,6 +54,10 @@ picts yet to come). A @racket[#:alt] fragment saves the current pict
 state, executes the sub-sequence that follows, saves the result (as if
 the sub-sequence ended with @racket[#:next]), then restores the saved
 pict state before continuing.
+
+A @racket[#:do] fragment embeds definitions and expressions which are
+run when the pict state is computed. The definitions are bound in the
+rest of the fragments in the pict.
 
 The @racket[elem-expr]s are interpreted by the current placer. A
 numeric @racket[elem-expr] usually represents a spacing change, but
@@ -120,6 +125,17 @@ circles-down-1
                          #:alt [(rectangle 20 20)]
                          (text "and more!"))])
   (append intermediates (list final)))
+]
+
+The following demonstrates the use of the @racket[#:do] fragment:
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:do [(define c (circle 20))
+                (define r (rectangle 20 20))
+                (set! c (circle 25))]
+          #:go (coord 0.5 0.5)
+          (hc-append c r))
 ]
 
 More examples of @racket[ppict-do] are scattered throughout this
