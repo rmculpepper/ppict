@@ -2,22 +2,28 @@
 @(require scribble/base
           scribble/manual
           scribble/eval
-          "../utils.rkt"
           (for-label racket/base
                      slideshow
-                     unstable/gui/ppict
-                     unstable/gui/pslide
-                     unstable/gui/pict))
+                     ppict/pict
+                     ppict/tag
+                     ppict/align
+                     ppict/slideshow))
 
 @title[#:tag "ppict"]{Progressive Picts and Slides}
-@unstable[@author+email["Ryan Culpepper" "ryanc@racket-lang.org"]]
+@author[@author+email["Ryan Culpepper" "ryanc@racket-lang.org"]]
 
 @(define the-eval (make-base-eval))
-@(the-eval '(require pict unstable/gui/ppict unstable/gui/private/tag-pict))
+@(the-eval '(require pict ppict/pict ppict/tag ppict/align))
+
+@defmodule[ppict]
+
+The @racketmodname[ppict] module re-exports the contents of
+@racketmodname[ppict/pict], @racketmodname[ppict/tag],
+@racketmodname[ppict/align], and @racketmodname[ppict/slideshow].
 
 @section[#:tag "ppicts"]{Progressive Picts}
 
-@defmodule[unstable/gui/ppict]
+@defmodule[ppict/pict]
 
 A @deftech{progressive pict} or ``ppict'' is a kind of @racket[pict]
 that has an associated ``pict placer,'' which generally represents a
@@ -370,9 +376,10 @@ reference point is computed by @racket[y-placer].
 }
 
 
+@; ============================================================
 @section[#:tag "pslide"]{Progressive Slides}
 
-@defmodule[unstable/gui/pslide]
+@defmodule[ppict/slideshow]
 
 @defform[(pslide ppict-do-fragment ...)]{
 
@@ -438,6 +445,117 @@ is
 @racketblock[
 (coord 1/2 1/2 'cc)
 ]
+}
+
+
+@; ============================================================
+@section[#:tag "tag-pict"]{Tagged Picts}
+
+@defmodule[ppict/tag]
+
+@defproc[(tag-pict [p pict?] [tag symbol?]) pict?]{
+
+Returns a pict like @racket[p] that carries a symbolic tag. The tag
+can be used with @racket[find-tag] to locate the pict.
+}
+
+@defproc[(find-tag [p pict?] [find tag-path?])
+         (or/c pict-path? #f)]{
+
+Locates a sub-pict of @racket[p]. Returns a pict-path that can be used
+with functions like @racket[lt-find], etc.
+
+@examples[#:eval the-eval
+(let* ([a (tag-pict (colorize (disk 20) "red") 'a)]
+       [b (tag-pict (colorize (filled-rectangle 20 20) "blue") 'b)]
+       [p (vl-append a (hb-append (blank 100) b))])
+  (pin-arrow-line 10 p
+                  (find-tag p 'a) rb-find
+                  (find-tag p 'b) lt-find))
+]
+}
+
+@defproc[(find-tag* [p pict?] [find tag-path?])
+         (listof pict-path?)]{
+
+Like @racket[find-tag], but returns all pict-paths corresponding to
+the given tag-path.
+
+@examples[#:eval the-eval
+(let* ([a (lambda () (tag-pict (colorize (disk 20) "red") 'a))]
+       [b (lambda () (tag-pict (colorize (filled-rectangle 20 20) "blue") 'b))]
+       [as (vc-append 10 (a) (a) (a))]
+       [bs (vc-append 10 (b) (b) (b))]
+       [p (hc-append as (blank 60 0) bs)])
+  (for*/fold ([p p])
+      ([apath (in-list (find-tag* p 'a))]
+       [bpath (in-list (find-tag* p 'b))])
+    (pin-arrow-line 4 p
+                    apath rc-find
+                    bpath lc-find)))
+]
+}
+
+@defproc[(tag-path? [x any/c]) boolean?]{
+
+Returns @racket[#t] if @racket[x] is a symbol or a non-empty list of
+symbols, @racket[#f] otherwise.
+}
+
+
+@; ============================================================
+@section[#:tag "align"]{Alignment}
+
+@defmodule[ppict/align]
+
+@defthing[align/c contract?]{
+
+Equivalent to @racket[(or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb)].
+}
+
+@defthing[halign/c contract?]{
+
+Equivalent to @racket[(or/c 'l 'c 'r)].
+}
+
+@defthing[valign/c contract?]{
+
+Equivalent to @racket[(or/c 't 'c 'b)].
+}
+
+@deftogether[[
+@defproc[(align->h [a align/c]) halign/c]
+@defproc[(align->v [a align/c]) valign/c]
+]]{
+
+Extracts the @racket[halign/c] or @racket[valign/c] part from
+@racket[a], respectively.
+}
+
+@defproc[(align->frac [a (or/c halign/c valign/c)]) real?]{
+
+Computes the fraction corresponding to an alignment where the top-left
+is @racket[0].
+}
+
+@deftogether[[
+@defproc[(halign->vcompose [ha halign/c]) procedure?]
+@defproc[(valign->hcompose [va valign/c]) procedure?]
+]]{
+
+Returns the @racket[h*-append] or @racket[v*-append] function for the
+given horizontal or vertical alignment, respectively.
+}
+
+@defproc[(pin-over/align [scene pict?]
+                         [x real?] [y real?]
+                         [halign halign/c] [valign valign/c]
+                         [pict pict?])
+         pict?]{
+
+Pins @racket[pict] over @racket[scene] centered at
+@racket[x]x@racket[y] aligned as specified in @racket[halign] and
+@racket[valign].
 }
 
 @(close-eval the-eval)

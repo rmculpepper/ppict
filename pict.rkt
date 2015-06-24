@@ -5,7 +5,7 @@
                      "private/ppict-syntax.rkt")
          racket/contract/base
          pict
-         unstable/gui/pict/align
+         "align.rkt"
          "private/ppict.rkt"
          "private/tag-pict.rkt")
 

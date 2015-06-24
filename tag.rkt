@@ -1,5 +1,6 @@
 #lang racket/base
-(require pict
+(require racket/contract/base
+         pict
          "private/tag-pict.rkt")
 
 (provide/contract

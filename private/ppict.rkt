@@ -5,8 +5,9 @@
          racket/stxparam
          racket/contract/base
          pict
-         unstable/gui/pict/align
+         "../align.rkt"
          "tag-pict.rkt")
+(provide (all-defined-out))
 
 #|
 TODO
@@ -301,8 +302,3 @@ In a placer function's arguments:
 
 (define (ghost* x)
   (if (pict? x) (ghost x) x))
-
-;; ============================================================
-;; Exports
-
-(provide (all-defined-out))

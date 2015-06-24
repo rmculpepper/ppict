@@ -1,6 +1,17 @@
 #lang racket/base
 (require pict
          racket/contract/base)
+(provide
+ (contract-out
+  [halign->vcompose (-> halign/c procedure?)]
+  [valign->hcompose (-> valign/c procedure?)]
+  [pin-over/align (-> pict? real? real? halign/c valign/c pict? pict?)]
+  [align->frac (-> (or/c halign/c valign/c) real?)]
+  [align/c contract?]
+  [halign/c contract?]
+  [align->h (-> align/c halign/c)]
+  [valign/c contract?]
+  [align->v (-> align/c valign/c)]))
 
 (define (pin-over/align scene x y halign valign pict)
   (let ([localrefx (* (pict-width pict) (align->frac halign))]
@@ -45,16 +56,3 @@
   (or/c 'l 'c 'r))
 (define valign/c
   (or/c 't 'c 'b))
-
-(provide
- (contract-out
-  ;; xxx more specific
-  [halign->vcompose (-> halign/c procedure?)]
-  [valign->hcompose (-> valign/c procedure?)]
-  [pin-over/align (-> pict? real? real? halign/c valign/c pict? pict?)]
-  [align->frac (-> (or/c halign/c valign/c) real?)]
-  [align/c contract?]
-  [halign/c contract?]
-  [align->h (-> align/c halign/c)]
-  [valign/c contract?]
-  [align->v (-> align/c valign/c)]))
