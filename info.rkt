@@ -18,4 +18,4 @@
 (define pkg-authors '(ryanc))
 
 (define scribblings
-  '(("ppict.scrbl" ())))
+  '(("ppict.scrbl" () ("Slideshow Libraries"))))
