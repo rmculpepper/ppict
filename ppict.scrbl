@@ -206,6 +206,7 @@ point, @racket[#f] otherwise.
                 [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
                 [#:abs-x abs-x real? 0]
                 [#:abs-y abs-y real? 0]
+                [#:sep sep real 0]
                 [#:compose composer procedure? #, @elem{computed from @racket[align]}])
          refpoint-placer?]{
 
@@ -229,7 +230,7 @@ vertically appended, aligned according to the horizontal component of
 @racket[align]. For example, if @racket[align] is @racket['cc], the
 default @racket[composer] is @racket[vc-append]; for @racket['lt], the
 default @racket[composer] is @racket[vl-append]. The spacing is
-initially @racket[0].
+initially @racket[sep].
 
 @examples[#:eval the-eval
 (ppict-do base 
@@ -259,6 +260,7 @@ initially @racket[0].
                [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
                [#:abs-x abs-x real? 0]
                [#:abs-y abs-y real? 0]
+               [#:sep sep real? 0]
                [#:compose composer procedure? #, @elem{computed from @racket[align]}])
          refpoint-placer?]{
 
@@ -341,6 +343,7 @@ Returns a placer that places picts by tiling them in a grid
                        [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
                        [#:abs-x abs-x real? 0]
                        [#:abs-y abs-y real? 0]
+                       [#:sep sep real? 0]
                        [#:compose composer procedure? #, @elem{computed from @racket[align]}])
          refpoint-placer?]{
 

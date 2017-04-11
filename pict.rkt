@@ -55,6 +55,7 @@
        (align/c
         #:abs-x real?
         #:abs-y real?
+        #:sep real?
         #:compose procedure?)
        refpoint-placer?)]
  [grid
@@ -63,6 +64,7 @@
        (align/c
         #:abs-x real?
         #:abs-y real?
+        #:sep real?
         #:compose procedure?)
        refpoint-placer?)]
  [cascade
@@ -78,6 +80,7 @@
         align/c
         #:abs-x real?
         #:abs-y real?
+        #:sep real?
         #:compose procedure?)
        refpoint-placer?)]
  [merge-refpoints

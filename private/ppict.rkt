@@ -165,6 +165,7 @@ In a placer function's arguments:
 (define (grid cols rows col row [align 'cc]
               #:abs-x [abs-x 0]
               #:abs-y [abs-y 0]
+              #:sep [sep 0]
               #:compose [compose (halign->vcompose (align->h align))])
   ;; row, column indexes are 1-based
   (define halign (align->h align))
@@ -172,7 +173,7 @@ In a placer function's arguments:
   (define xfrac (/ (+ (sub1 col) (align->frac halign)) cols))
   (define yfrac (/ (+ (sub1 row) (align->frac valign)) rows))
   (new refpoint%
-       (xa abs-x) (ya abs-y)
+       (xa abs-x) (ya abs-y) (sep sep)
        (depxy (lambda (p)
                 (values (* xfrac (pict-width p))
                         (* yfrac (pict-height p)))))
@@ -181,11 +182,12 @@ In a placer function's arguments:
 (define (coord xfrac yfrac [align 'cc]
                #:abs-x [abs-x 0]
                #:abs-y [abs-y 0]
+               #:sep [sep 0]
                #:compose [compose (halign->vcompose (align->h align))])
   (define halign (align->h align))
   (define valign (align->v align))
   (new refpoint%
-       (xa abs-x) (ya abs-y)
+       (xa abs-x) (ya abs-y) (sep sep)
        (depxy (lambda (p)
                 (values (* xfrac (pict-width p))
                         (* yfrac (pict-height p)))))
@@ -263,11 +265,12 @@ In a placer function's arguments:
                       [align 'cc]
                       #:abs-x [abs-x 0]
                       #:abs-y [abs-y 0]
+                      #:sep [sep 0]
                       #:compose [compose (halign->vcompose (align->h align))])
   (define halign (align->h align))
   (define valign (align->v align))
   (new refpoint%
-       (xa abs-x) (ya abs-y)
+       (xa abs-x) (ya abs-y) (sep sep)
        (depxy (lambda (p)
                 (let ([pict-path (if (tag-path? path) (find-tag p path) path)])
                   (unless pict-path
