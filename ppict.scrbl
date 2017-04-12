@@ -15,11 +15,17 @@
 @(define the-eval (make-base-eval))
 @(the-eval '(require pict ppict/pict ppict/tag ppict/align))
 
-@defmodule[ppict]
+@defmodule[ppict/2]
 
-The @racketmodname[ppict] module re-exports the contents of
+The @racketmodname[ppict/2] module re-exports the contents of
 @racketmodname[ppict/pict], @racketmodname[ppict/tag],
-@racketmodname[ppict/align], and @racketmodname[ppict/slideshow].
+@racketmodname[ppict/align], and @racketmodname[ppict/slideshow2].
+
+@defmodule[ppict #:no-declare]
+
+Deprecated. Like @racketmodname[ppict/2] but re-exports the deprecated
+module @racketmodname[ppict/slideshow] instead of
+@racketmodname[ppict/slideshow2].
 
 @section[#:tag "ppicts"]{Progressive Picts}
 
@@ -382,74 +388,65 @@ reference point is computed by @racket[y-placer].
 @; ============================================================
 @section[#:tag "pslide"]{Progressive Slides}
 
+@defmodule[ppict/slideshow2]
+
+@defform[(pslide slide-option ... ppict-do-fragment ...)
+         #:grammar
+         ([slide-option (code:line #:title title-expr)
+                        (code:line #:name name-expr)
+                        (code:line #:layout layout-expr)
+                        (code:line #:gap-size gap-expr)
+                        (code:line #:inset inset-expr)
+                        (code:line #:timeout timeout-expr)
+                        (code:line #:condense? condense?-expr)])
+         #:contracts
+         ([title-expr (or/c string? #f)]
+          [name-expr (or/c string? #f)]
+          [layout-expr (or/c 'auto 'center 'full-center 'top 'tall)]
+          [gap-expr real?]
+          [inset-expr slide-inset?]
+          [timeout-expr (or/c real? #f)]
+          [condense?-expr any/c])]{
+
+Produce slide(s) using @tech{progressive picts}.  The slide body is
+constructed from the @racket[ppict-do-fragment]s using
+@racket[ppict-do] with an initial ppict that depends on
+@racket[_layout] (and potentially @racket[_title] and
+@racket[_gap-size] as well).
+
+The @racket[slide-option]s are interpreted the same as for the
+@racket[slide] procedure with the exception of @racket[#:layout]. The
+result of @racket[layout-expr] is interpreted as follows:
+
+@itemlist[
+
+@item{@racket['auto]: same as @racket['center] if the slide has a
+title, otherwise same as @racket['full-center]}
+
+@item{@racket['center]: the initial ppict is sized like
+@racket[titleless-page]}
+
+@item{@racket['full-center]: the initial ppict is sized like
+@racket[full-page]}
+
+@item{@racket['top], @racket['tall]: interpreted similarly to
+@racket[slide]'s treatment}
+]
+}
+
+@; ----------------------------------------
+@subsection[#:tag "pslide1"]{Progressive Slides Legacy Library}
+
 @defmodule[ppict/slideshow]
 
-@defform[(pslide ppict-do-fragment ...)]{
+@deftogether[[
+@defform[(pslide ppict-do-fragment ...)]
+@defparam[pslide-base-pict make-base-pict (-> pict)]
+@defparam[pslide-default-placer placer placer?]
+]]{
 
-Produce slide(s) using @tech{progressive picts}. See @racket[ppict-do]
-for an explanation of @racket[ppict-do-fragment]s.
-
-Note that like @racket[slide] but unlike @racket[ppict-do*], the
-number of slides produced is one greater than the number of
-@racket[#:next] uses; that is, a slide is created for the final pict.
-
-Remember to include @racket[gap-size] after updating the current
-placer if you want @racket[slide]-like spacing.
-
-@examples[#:eval the-eval
-(eval:alts (pslide #:go (coord 0 0 'lt)
-                   (t "You do not like")
-                   (colorize (t "green eggs and ham?") "darkgreen")
-                   #:next
-                   #:go (coord 1 1 'rb)
-                   (colorize (t "I do not like them,") "red")
-                   (t "Sam-I-am."))
-           (let-values ([(final slides0)
-                         (ppict-do* (colorize (filled-rectangle 200 150) "white")
-                                    #:go (coord 1/20 1/20 'lt) ;; for margins
-                                    (text "You do not like")
-                                    (colorize (text "green eggs and ham?")
-                                              "darkgreen")
-                                    #:next
-                                    #:go (coord 19/20 19/20 'rb) ;; for margins
-                                    (colorize (text "I do not like them,") "red")
-                                    (text "Sam-I-am.")
-                                    #:next)])
-             (let ([slides
-                    (inset
-                     (vl-append -10 
-                                (colorize (text "slides" '(bold . roman)) "white")
-                                (inset (apply hc-append 20 slides0) 15))
-                     5)])
-               (cc-superimpose
-                (colorize (filled-rectangle (pict-width slides) (pict-height slides))
-                          "darkgray")
-                slides))))
-]
-
-Note that the text is not flush against the sides of the slide,
-because @racket[pslide] uses a base pict the size of the client
-area, excluding the margins.
+Deprecated; use @racketmodname[ppict/slideshow2] instead.
 }
-
-@defparam[pslide-base-pict make-base-pict (-> pict)]{
-
-Controls the initial pict used by @racket[pslide]. The default value
-is
-@racketblock[
-(lambda () (blank client-w client-h))
-]
-}
-
-@defparam[pslide-default-placer placer placer?]{
-
-Controls the initial placer used by @racket[pslide]. The default value
-is
-@racketblock[
-(coord 1/2 1/2 'cc)
-]
-}
-
 
 @; ============================================================
 @section[#:tag "tag-pict"]{Tagged Picts}
