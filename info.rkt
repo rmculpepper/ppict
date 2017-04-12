@@ -1,5 +1,7 @@
 #lang info
 
+(define version "1.1")
+
 (define collection "ppict")
 
 (define deps '("base"

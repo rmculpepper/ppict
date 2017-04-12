@@ -21,11 +21,15 @@ The @racketmodname[ppict/2] module re-exports the contents of
 @racketmodname[ppict/pict], @racketmodname[ppict/tag],
 @racketmodname[ppict/align], and @racketmodname[ppict/slideshow2].
 
+@history[#:added "1.1"]
+
 @defmodule[ppict #:no-declare]
 
 Deprecated. Like @racketmodname[ppict/2] but re-exports the deprecated
 module @racketmodname[ppict/slideshow] instead of
 @racketmodname[ppict/slideshow2].
+
+@history[#:changed "1.1" @elem{Deprecated @racketmodname[ppict].}]
 
 @section[#:tag "ppicts"]{Progressive Picts}
 
@@ -257,6 +261,8 @@ initially @racket[sep].
           (circle 20)
           (circle 30))
 ]
+
+@history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}]
 }
 
 @defproc[(grid [cols exact-positive-integer?]
@@ -291,6 +297,8 @@ none-for-me-thanks
           (colorize (text "I do not like them,") "red")
           (text "Sam-I-am."))
 ]
+
+@history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}]
 }
 
 @defproc[(cascade [step-x (or/c real? 'auto) 'auto]
@@ -364,6 +372,8 @@ based on an existing pict within the base.
           #:go (at-find-pict 'red-fish rc-find 'lc #:abs-x 10)
           (text "red fish"))
 ]
+
+@history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}]
 }
 
 @defproc[(merge-refpoints [x-placer refpoint-placer?] 
@@ -389,6 +399,8 @@ reference point is computed by @racket[y-placer].
 @section[#:tag "pslide"]{Progressive Slides}
 
 @defmodule[ppict/slideshow2]
+
+@history[#:added "1.1"]
 
 @defform[(pslide slide-option ... ppict-do-fragment ...)
          #:grammar
@@ -438,6 +450,8 @@ title, otherwise same as @racket['full-center]}
 @subsection[#:tag "pslide1"]{Progressive Slides Legacy Library}
 
 @defmodule[ppict/slideshow]
+
+@history[#:changed "1.1" @elem{Deprecated @racketmodname[ppict/slideshow].}]
 
 @deftogether[[
 @defform[(pslide ppict-do-fragment ...)]
@@ -513,6 +527,8 @@ For each entry @racket[(list _x1 _y1 _x2 _y2 _tag)] in
 For example, use @racket[tag-pict-regions] with pixel-based regions to
 identify features within a bitmap-based pict so that they can be the
 targets of arrows, anchors for balloons, etc.
+
+@history[#:added "1.1"]
 }
 
 @; ============================================================
