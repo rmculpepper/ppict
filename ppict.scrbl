@@ -502,6 +502,18 @@ Returns @racket[#t] if @racket[x] is a symbol or a non-empty list of
 symbols, @racket[#f] otherwise.
 }
 
+@defproc[(tag-pict-regions [p pict?]
+                           [regions (listof (list/c real? real? real? real? symbol?))])
+         pict?]{
+
+For each entry @racket[(list _x1 _y1 _x2 _y2 _tag)] in
+@racket[regions], places a blank pict at the region (@racket[_x1],
+@racket[_y1])-(@racket[_x2], @racket[_y2]) tagged with @racket[_tag].
+
+For example, use @racket[tag-pict-regions] with pixel-based regions to
+identify features within a bitmap-based pict so that they can be the
+targets of arrows, anchors for balloons, etc.
+}
 
 @; ============================================================
 @section[#:tag "align"]{Alignment}

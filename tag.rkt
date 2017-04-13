@@ -14,4 +14,8 @@
   (-> pict? tag-path? (or/c pict-path? #f))]
  [find-tag*
   (-> pict? tag-path?
-      (listof pict-path?))])
+      (listof pict-path?))]
+ [tag-pict-regions
+  (-> pict?
+      (listof (list/c real? real? real? real? symbol?))
+      pict?)])

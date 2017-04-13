@@ -1,10 +1,12 @@
 #lang racket/base
-(require pict)
+(require racket/match
+         pict)
 (provide tag-pict
          find-tag
          find-tag*
          tag-path?
-         pict-tag)
+         pict-tag
+         tag-pict-regions)
 
 (struct tagged-pict pict (tag))
 ;; tag is symbol
@@ -61,3 +63,12 @@
 
 (define (pict-tag p)
   (and (tagged-pict? p) (tagged-pict-tag p)))
+
+;; tag-pict-regions : Pict (Listof TagLoc) -> Pict
+;; TagLoc = (list x1 y1 x2 y2 Symbol)
+(define (tag-pict-regions p taglocs)
+  (for/fold ([p p])
+            ([tagloc (in-list taglocs)])
+    (match tagloc
+      [(list x1 y1 x2 y2 tag)
+       (pin-over p x1 y1 (tag-pict (blank (- x2 x1) (- y2 y1)) tag))])))
