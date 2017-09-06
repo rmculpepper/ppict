@@ -22,7 +22,7 @@
      #:declare title (expr/c #'maybe-string/c)
      #:declare name (expr/c #'maybe-string/c)
      #:declare layout (expr/c #'layout/c)
-     #:declare gap-size (expr/c 'real?)
+     #:declare gap-size (expr/c #'real?)
      #:declare inset (expr/c #'slide-inset?)
      #:declare timeout (expr/c #'maybe-real/c)
      #:declare condense? expr
