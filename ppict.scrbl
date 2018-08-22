@@ -44,7 +44,7 @@ compact notation for sequences of those two operations.
 
 @deftogether[[
 @defform[(ppict-do base-expr ppict-do-fragment ...)]
-@defform/subs[(ppict-do* base-expr ppic-do-fragment ...)
+@defform/subs[(ppict-do* base-expr ppict-do-fragment ...)
               ([ppict-do-fragment (code:line #:go placer-expr)
                                   (code:line #:set pict-expr)
                                   (code:line #:next)
@@ -95,7 +95,7 @@ middle of a chain of @racket[elem-expr]s, however.
             (colorize (vline 1 200) "gray")))
 base
 ]
-The use of @racket[ppict-do] in the defnition of @racket[base] above
+The use of @racket[ppict-do] in the definition of @racket[base] above
 is equivalent to
 @racketblock[
 (let* ([pp (colorize (rectangle 200 200) "gray")]
@@ -216,7 +216,7 @@ point, @racket[#f] otherwise.
                 [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
                 [#:abs-x abs-x real? 0]
                 [#:abs-y abs-y real? 0]
-                [#:sep sep real 0]
+                [#:sep sep real? 0]
                 [#:compose composer procedure? #, @elem{computed from @racket[align]}])
          refpoint-placer?]{
 
