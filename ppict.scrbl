@@ -473,6 +473,15 @@ Returns a pict like @racket[p] that carries a symbolic tag. The tag
 can be used with @racket[find-tag] to locate the pict.
 }
 
+@defproc[(pict-tag [p pict?]) (or/c symbol? #f)]{
+Return the symbolic tag carried by @racket[p].
+
+@examples[#:eval the-eval
+  (pict-tag (blank))
+  (pict-tag (tag-pict (blank) 'a-blank))
+]
+}
+
 @defproc[(find-tag [p pict?] [find tag-path?])
          (or/c pict-path? #f)]{
 
