@@ -13,6 +13,7 @@
   (syntax-parse stx
     [(_ (~or (~optional (~seq #:title title))
              (~optional (~seq #:name name))
+             (~optional (~seq #:aspect aspect))
              (~optional (~seq #:layout layout))
              (~optional (~seq #:gap-size gap-size))
              (~optional (~seq #:inset inset))
@@ -21,6 +22,7 @@
         ... . fs)
      #:declare title (expr/c #'maybe-string/c)
      #:declare name (expr/c #'maybe-string/c)
+     #:declare aspect (expr/c #'aspect?)
      #:declare layout (expr/c #'layout/c)
      #:declare gap-size (expr/c #'real?)
      #:declare inset (expr/c #'slide-inset?)
@@ -31,6 +33,7 @@
       (pslide* 'pslide
                (?? (?@ #:title title.c))
                (?? (?@ #:name name.c))
+               (?? (?@ #:aspect aspect.c))
                (?? (?@ #:layout layout.c))
                (?? (?@ #:gap-size gap-size.c))
                (?? (?@ #:inset inset.c))
@@ -50,6 +53,7 @@
 (define (pslide* who proc
                  #:title [title #f]
                  #:name [name title]
+                 #:aspect [aspect #f]
                  #:layout [layout 'auto]
                  #:gap-size [gap-size (current-gap-size)]
                  #:inset [inset no-inset]
@@ -57,6 +61,7 @@
                  #:condense? [condense? (and timeout #t)])
   (define (do-slide p)
     (slide #:title title
+           #:aspect aspect
            #:layout (convert-layout layout)
            #:gap-size gap-size
            #:inset inset
@@ -64,16 +69,18 @@
            #:condense? condense?
            p))
   (define-values (final-pict picts)
-    (proc (get-base-ppict title layout gap-size)))
+    (proc (get-base-ppict title aspect layout gap-size)))
   (for-each do-slide picts)
   (do-slide final-pict)
   (void))
 
-;; get-base-ppict : String/#f Layout Real -> PPict
-(define (get-base-ppict title layout gap)
+;; get-base-ppict : String/#f Aspect Layout Real -> PPict
+(define (get-base-ppict title aspect layout gap)
+  (define client-w (get-client-w #:aspect aspect))
+  (define client-h (get-client-h #:aspect aspect))
   (case layout
     [(auto)
-     (get-base-ppict title (if title 'center 'full-center) gap)]
+     (get-base-ppict title aspect (if title 'center 'full-center) gap)]
     [(center)
      (ppict-go (blank client-w (- client-h title-h gap gap))
                (coord 1/2 1/2 'cc #:sep gap))]
