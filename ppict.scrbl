@@ -406,6 +406,7 @@ reference point is computed by @racket[y-placer].
          #:grammar
          ([slide-option (code:line #:title title-expr)
                         (code:line #:name name-expr)
+                        (code:line #:aspect aspect-expr)
                         (code:line #:layout layout-expr)
                         (code:line #:gap-size gap-expr)
                         (code:line #:inset inset-expr)
@@ -414,6 +415,7 @@ reference point is computed by @racket[y-placer].
          #:contracts
          ([title-expr (or/c string? #f)]
           [name-expr (or/c string? #f)]
+          [aspect-expr aspect?]
           [layout-expr (or/c 'auto 'center 'full-center 'top 'tall)]
           [gap-expr real?]
           [inset-expr slide-inset?]
@@ -423,7 +425,7 @@ reference point is computed by @racket[y-placer].
 Produce slide(s) using @tech{progressive picts}.  The slide body is
 constructed from the @racket[ppict-do-fragment]s using
 @racket[ppict-do] with an initial ppict that depends on
-@racket[_layout] (and potentially @racket[_title] and
+@racket[_aspect] and @racket[_layout] (and potentially @racket[_title] and
 @racket[_gap-size] as well).
 
 The @racket[slide-option]s are interpreted the same as for the
@@ -444,6 +446,8 @@ title, otherwise same as @racket['full-center]}
 @item{@racket['top], @racket['tall]: interpreted similarly to
 @racket[slide]'s treatment}
 ]
+
+@history[#:changed "1.2" @elem{Added the @racket[#:aspect] optional argument.}]
 }
 
 @; ----------------------------------------
