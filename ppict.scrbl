@@ -551,8 +551,11 @@ targets of arrows, anchors for balloons, etc.
 
 @defthing[align/c contract?]{
 
-Equivalent to @racket[(or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb)].
-}
+Equivalent to @racket[(or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb
+'lbl 'cbl 'rbl 'ltl 'ctl 'rtl)].
+
+@history[#:changed "1.3" @elem{Added the @litchar{bl} and @litchar{tl}
+variants.}]}
 
 @defthing[halign/c contract?]{
 
@@ -561,8 +564,9 @@ Equivalent to @racket[(or/c 'l 'c 'r)].
 
 @defthing[valign/c contract?]{
 
-Equivalent to @racket[(or/c 't 'c 'b)].
-}
+Equivalent to @racket[(or/c 't 'c 'b 'bl 'tl)].
+
+@history[#:changed "1.3" @elem{Added @racket['bl] and @racket['tl].}]}
 
 @deftogether[[
 @defproc[(align->h [a align/c]) halign/c]
@@ -571,13 +575,47 @@ Equivalent to @racket[(or/c 't 'c 'b)].
 
 Extracts the @racket[halign/c] or @racket[valign/c] part from
 @racket[a], respectively.
-}
+
+@examples[#:eval the-eval
+(align->h 'rt)
+(align->v 'rt)
+]}
+
+@defproc[(make-align [halign halign/c] [valign valign/c]) align/c]{
+
+Returns the alignment consisting of @racket[halign] and
+@racket[valign] components.
+
+@examples[#:eval the-eval
+(make-align 'r 't)
+]
+
+@history[#:added "1.3"]}
 
 @defproc[(align->frac [a (or/c halign/c valign/c)]) real?]{
 
+@bold{Deprecated: } Use @racket[align->x] and @racket[align->y] instead.
+
 Computes the fraction corresponding to an alignment where the top-left
-is @racket[0].
+is @racket[0]. If @racket[a] is @racket['bl] or @racket['tl], an
+exception is raised.
 }
+
+@deftogether[[
+@defproc[(align->x [a (or/c halign/c align/c)] [p pict?]) real?]
+@defproc[(align->y [a (or/c valign/c align/c)] [p pict?]) real?]
+]]{
+
+Returns the horizontal distance from the left edge of @racket[p] or
+the vertical distance from the top of @racket[p], respectively, to the
+point in the pict specified by @racket[a].
+
+@examples[#:eval the-eval
+(align->x 'rt (blank 200 100))
+(align->y 'lbl (text "hello"))
+]
+
+@history[#:added "1.3"]}
 
 @deftogether[[
 @defproc[(halign->vcompose [ha halign/c]) procedure?]
@@ -594,9 +632,48 @@ given horizontal or vertical alignment, respectively.
                          [pict pict?])
          pict?]{
 
-Pins @racket[pict] over @racket[scene] centered at
-@racket[x]x@racket[y] aligned as specified in @racket[halign] and
-@racket[valign].
+Pins @racket[pict] over @racket[scene] so that the point on
+@racket[pict] specified by @racket[halign] and @racket[valign] is
+placed at (@racket[x], @racket[y]) relative to the top-left corner of
+@racket[scene].
 }
+
+@defproc[(pin-over/align2 [scene pict?]
+                          [scene-align align/c]
+                          [x real?] [y real?]
+                          [pict pict?]
+                          [pict-align align/c])
+         pict?]{
+
+Pins @racket[pict] over @racket[scene] so that the point on
+@racket[pict] identified by @racket[pict-align] is placed (@racket[x],
+@racket[y]) units right and down from the point on @racket[scene]
+identified by @racket[scene-align].
+
+@examples[#:eval the-eval
+(pin-over/align2 (rectangle 100 100) 'rc 0 0 (disk 20 #:color "red") 'rb)
+]
+
+@history[#:added "1.3"]}
+
+@defproc[(inset-to/align [pict pict?]
+                         [width (or/c real? #f)]
+                         [height (or/c real? #f)]
+                         [align align/c])
+         pict?]{
+
+Returns a pict with dimensions (@racket[width], @racket[height])
+created by calling @racket[inset] on @racket[pict] such that
+@racket[pict] occupies the space specified by @racket[align] in the
+result. If either @racket[width] or @racket[height] are @racket[#f],
+the @racket[pict]'s corresponding dimension is preserved.
+
+@examples[#:eval the-eval
+(frame (inset-to/align (disk 20 #:color "red") 50 30 'lb))
+(frame (clip (inset-to/align (disk 40 #:color "blue") 50 30 'rc)))
+(frame (inset-to/align (disk 30 #:color "green") 50 #f 'cc))
+]
+
+@history[#:added "1.3"]}
 
 @(close-eval the-eval)
