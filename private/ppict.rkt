@@ -2,6 +2,7 @@
 (require (for-syntax racket/base)
          racket/list
          racket/class
+         racket/match
          racket/stxparam
          racket/contract/base
          pict
@@ -11,7 +12,6 @@
 
 #|
 TODO
-- [lcr]bl alignments... not sure about [lcr]tl
 - document composer contract
 - generalize ppict-add to ppict-add* (put 'next support there)
 - find a way to support slide animation
@@ -20,14 +20,7 @@ TODO
 ;; ============================================================
 ;; Progressive Picts
 
-#|
-A ppict contains a pict and a placer (or #f).
-A placer = (placer (pict (listof (U pict real #f)) -> ppict))
-In a placer function's arguments:
-  a number means to change the separation spacing
-  a #f is just ignored
-  FIXME: clarify, for following or including current gap?
-|#
+;; A ppict is a pict extended with a placer.
 (struct ppict pict (placer))
 
 (define (mk-ppict p placer)
@@ -44,63 +37,52 @@ In a placer function's arguments:
 (define (ppict-pict dp)
   (child-pict (car (pict-children dp))))
 
-;; ----
+;; ----------------------------------------
 
 (define-syntax-parameter ppict-do-state
   (lambda (stx)
     (raise-syntax-error #f "used out of context" stx)))
 
-;; ppict-go : pict placer -> ppict
+;; ppict-go : Pict Placer -> PPict
 (define (ppict-go dp pl)
   (cond [(ppict? dp)
          (mk-ppict (ppict-pict dp) pl)]
         [(pict? dp)
          (mk-ppict dp pl)]))
 
-;; ppict-add : ppict (U pict real #f 'next) ... -> ppict
+;; An Element is one of
+;; - CoreElement
+;; - #f     -- ignored
+;; - 'next  -- emit intermediate pict
+
+;; A CoreElement is one of
+;; - Pict   -- place this pict
+;; - Real   -- adjust spacing (if supported)
+
+;; ppict-add : PPict Element ... -> PPict
 (define (ppict-add dp . parts)
   (let-values ([(final intermediates)
                 (ppict-add/internal 'ppict-add dp parts)])
     final))
 
-;; ppict-add* : ppict (U pict real #f 'next) ... -> (values ppict (listof pict))
+;; ppict-add* : PPict Element ... -> (values Pict (Listof Pict))
 (define (ppict-add* dp . parts)
   (ppict-add/internal 'ppict-add* dp parts))
 
-;; ppict-add/internal : symbol pict (listof (U pict real #f 'next))
-;;                   -> (values pict (listof pict)
+;; ppict-add/internal : Symbol Pict (Listof Element)
+;;                   -> (values Pict (Listof Pict))
 ;; In second return value, one pict per 'next occurrence.
 ;; FIXME: avoid applying ghost to previously ghosted pict?
 (define (ppict-add/internal who base parts)
-  (cond [(for/and ([part (in-list parts)]) (eq? part 'next))
+  (cond [(for/and ([part (in-list parts)])
+           (or (eq? part #f) (eq? part 'next)))
          ;; Special case; don't need a ppict
          (values base (make-list (length parts) base))]
         [else
          (unless (ppict? base) (error who "missing placer"))
-         (let ([placer (ppict-placer base)]
-               [base-pict (ppict-pict base)]
-               [elem-chunks
-                ;; (listof (listof pict?))
-                ;;   length is N+1, where N is number of 'next in chunk
-                ;;   ghosted before visible
-                (let elab ([chunk parts])
-                  (cond [(and (pair? chunk) (eq? 'next (car chunk)))
-                         (let ([elab-rest (elab (cdr chunk))])
-                           (cons (map ghost* (car elab-rest)) elab-rest))]
-                        [(and (pair? chunk) (not (eq? 'next (car chunk))))
-                         (for/list ([elem-chunk (in-list (elab (cdr chunk)))])
-                           (cons (car chunk) elem-chunk))]
-                        [(null? chunk) (list null)]))])
-           (let out-loop ([chunks elem-chunks] [rpicts null])
-             (cond [(null? (cdr chunks))
-                    (values (send placer place base-pict (car chunks))
-                            (reverse rpicts))]
-                   [else
-                    (out-loop (cdr chunks)
-                              (cons (send placer place base-pict (car chunks))
-                                    rpicts))])))]))
+         (send (ppict-placer base) place-all (ppict-pict base) parts)]))
 
-;; ----
+;; ----------------------------------------
 
 (define (placer? x) (is-a? x placer<%>))
 (define (refpoint-placer? x) (is-a? x refpoint%))
@@ -110,57 +92,110 @@ In a placer function's arguments:
 
 (define placer<%>
   (interface ()
-    ;; place : pict (listof (U pict real #f)) -> pict
-    place))
+    place-all   ;; Pict (Listof Element) -> (Listof Pict)
+    place       ;; Pict (Listof CoreElement) -> Pict
+    place*      ;; Pict Real Real Real Real (Listof CoreElement) -> Pict
+    ))
+
+(define placer-base%
+  (class* object% (placer<%>)
+    (super-new)
+
+    (define/public (place-all scene parts)
+      (define (ghost* v) (if (pict? v) (ghost v) v))
+      (define elem-chunks  ;; (Listof (Listof Pict))
+        ;; length is N+1, where N is number of 'next parts
+        (let loop ([parts parts] [ghosts #f] [rprefix null] [acc null])
+          (match parts
+            [(cons 'next parts)
+             (let ([ghosts (or ghosts (map ghost* parts))])
+               (define chunk (append (reverse rprefix) ghosts))
+               (loop parts ghosts rprefix (cons chunk acc)))]
+            [(cons #f parts)
+             (loop parts (and ghosts (cdr ghosts)) rprefix acc)]
+            [(cons part parts)
+             (loop parts (and ghosts (cdr ghosts)) (cons part rprefix) acc)]
+            ['() (reverse (cons (reverse rprefix) acc))])))
+      (let out-loop ([chunks elem-chunks] [rpicts null])
+        (match chunks
+          [(cons chunk chunks)
+           (out-loop chunks (cons (place scene chunk) rpicts))]
+          ['() (values (car rpicts) (reverse (cdr rpicts)))])))
+
+    (define/public (place scene elems)
+      (place* scene (pict-width scene) (pict-height scene) 0 0 elems))
+
+    (abstract place*)
+    ))
+
+;; ----------------------------------------
+
+(define associative-placer<%>
+  (interface (placer<%>)
+    get-sep                     ;; -> Real
+    compose-elements            ;; (Listof Element) -> (values Pict Real)
+    check-associative-vcompose  ;; -> (U VAlign #f)
+
+    ;; A Placer has an associative vertical composer if
+    ;; (compose-elements (list e1 ... e2 ...)
+    ;; = (let*-values ([(p1 sep1) (compose-elements (list e1 ...))]
+    ;;                 [(p2 sep2) (compose-elements (list sep1 e2 ...))])
+    ;;     (values (v??-append sep1 p1 p2) sep2))
+    ))
 
 (define refpoint%
-  (class* object% (placer<%>)
+  (class* placer-base% (associative-placer<%>)
     (init-field xa ya depxy halign valign compose
                 [sep 0]
                 [cont? #f])
     (super-new)
 
-    (define/public (place scene picts)
-      (define-values (dx dy)
-        (let-values ([(depx depy) (if depxy (depxy scene) (values 0 0))])
-          (values (+ depx xa)
-                  (+ depy ya))))
+    (define/public (get-sep) sep)
+
+    (define/public (get-xy p iw ih ix iy)
+      (define-values (depx depy)
+        (if depxy (depxy p iw ih ix iy) (values ix iy)))
+      (values (+ depx xa) (+ depy ya)))
+
+    (define/override (place* scene iw ih ix iy elems)
       (define-values (newpict newsep)
-        (apply-compose compose sep (cons (and cont? (blank 0)) picts)))
+        (compose-elements (if cont? (cons (blank 0) elems) elems)))
+      (define-values (dx dy) (get-xy scene iw ih ix iy))
       (define newscene
         (pin-over/align scene dx dy halign valign newpict))
-      (cond [(and (eq? valign 't) (eq? compose (halign->vcompose halign)))
-             ;; ie, going top-down and compose is the natural compose for this align
-             (mk-ppict newscene
-                       (new refpoint%
-                            (xa dx) (ya (+ dy (pict-height newpict))) (depxy #f)
-                            (halign halign) (valign valign)
-                            (compose compose) (sep newsep) (cont? #t)))]
-            [(and (eq? halign 'l) (eq? compose (valign->hcompose valign)))
-             ;; ie, going left-right and compose is the natural compose ...
-             (mk-ppict newscene
-                       (new refpoint%
-                            (xa (+ dx (pict-width newpict))) (ya dy) (depxy #f)
-                            (halign halign) (valign valign)
-                            (compose compose) (sep newsep) (cont? #t)))]
+      (cond [(eq? (check-associative-vcompose) 't)
+             ;; ie, going top-down: align is '<H>t and compose is v<H>-append
+             (define newplacer (move 0 (pict-height newpict) #:sep newsep #:cont? #t))
+             (mk-ppict newscene newplacer)]
+            [(eq? (check-associative-hcompose) 'l)
+             ;; ie, going left to right: align is 'l<V> and compose is h<V>-append
+             (define newplacer (move (pict-width newpict) 0 #:sep newsep #:cont? #t))
+             (mk-ppict newscene newplacer)]
             [else newscene]))
+
+    ;; check-associative-hcompose : -> (U HAlign #f)
+    ;; check-associative-vcompose : -> (U VAlign #f)
+    (define/public (check-associative-hcompose)
+      (if (equal? compose (valign->hcompose valign)) halign #f))
+    (define/public (check-associative-vcompose)
+      (if (equal? compose (halign->vcompose halign)) valign #f))
+
+    (define/public (move dx dy #:sep [sep sep] #:cont? [cont? cont?])
+      (new refpoint% (xa (+ xa dx)) (ya (+ ya dy)) (depxy depxy)
+           (halign halign) (valign valign) (compose compose) (sep sep) (cont? cont?)))
+
+    (define/public (compose-elements elems)
+      (apply-compose compose sep elems))
 
     (define/public (take-y-from other)
       (new refpoint%
-           (xa xa)
-           (ya (get-field ya other))
-           (depxy (let ([odepxy (get-field depxy other)])
-                    (lambda (base)
-                      (let-values ([(x _y) (if depxy (depxy base) (values 0 0))]
-                                   [(_x y) (if odepxy (odepxy base) (values 0 0))])
-                        (values x y)))))
-           (halign halign)
-           (valign valign)
-           (compose compose)
-           (sep sep)
-           (cont? cont?)))))
-
-;; --
+           (xa xa) (ya (get-field ya other))
+           (depxy (lambda (p iw ih ix iy)
+                    (define-values (myx myy) (get-xy p iw ih ix iy))
+                    (define-values (ox oy) (send other get-xy p iw ih ix iy))
+                    (values myx oy)))
+           (halign halign) (valign valign) (compose compose) (sep sep) (cont? cont?)))
+    ))
 
 (define (grid cols rows col row [align 'cc]
               #:abs-x [abs-x 0]
@@ -174,9 +209,9 @@ In a placer function's arguments:
   (define yfrac (/ (+ (sub1 row) (align->frac valign)) rows))
   (new refpoint%
        (xa abs-x) (ya abs-y) (sep sep)
-       (depxy (lambda (p)
-                (values (* xfrac (pict-width p))
-                        (* yfrac (pict-height p)))))
+       (depxy (lambda (p iw ih ix iy)
+                (values (+ ix (* xfrac iw))
+                        (+ iy (* yfrac ih)))))
        (halign halign) (valign valign) (compose compose)))
 
 (define (coord xfrac yfrac [align 'cc]
@@ -184,80 +219,20 @@ In a placer function's arguments:
                #:abs-y [abs-y 0]
                #:sep [sep 0]
                #:compose [compose (halign->vcompose (align->h align))])
+  (define (convert u abs-u)
+    (match u
+      [(? real? u) (values u abs-u)]
+      [(list (? real? ur) (? real? ua)) (values u (+ abs-u ua))]))
+  (define-values (xr xa) (convert xfrac abs-x))
+  (define-values (yr ya) (convert yfrac abs-y))
   (define halign (align->h align))
   (define valign (align->v align))
   (new refpoint%
-       (xa abs-x) (ya abs-y) (sep sep)
-       (depxy (lambda (p)
-                (values (* xfrac (pict-width p))
-                        (* yfrac (pict-height p)))))
+       (xa xa) (ya ya) (sep sep)
+       (depxy (lambda (p iw ih ix iy)
+                (values (+ ix (* xr iw))
+                        (+ iy (* yr ih)))))
        (halign halign) (valign valign) (compose compose)))
-
-;; ----
-
-(define cascade%
-  (class* object% (placer<%>)
-    (init-field step-x0 step-y0)
-    (super-new)
-
-    (define/public (place scene elems)
-      (for ([e (in-list elems)])
-        (when (real? e) (error 'cascade "spacing changes not allowed: ~e" e)))
-      (let* ([picts (filter pict? elems)]
-             [max-w (apply max 1 (map pict-width picts))]  ;; avoid 0
-             [max-h (apply max 1 (map pict-height picts))] ;; avoid 0
-             [auto-step-x (/ (- (pict-width scene) max-w) (+ 1 (length picts)))]
-             [auto-step-y (/ (- (pict-height scene) max-h) (+ 1 (length picts)))]
-             [step-x (if (eq? step-x0 'auto) auto-step-x step-x0)]
-             [step-y (if (eq? step-y0 'auto) auto-step-y step-y0)]
-             [bbox (blank max-w max-h)]
-             [newscene
-              (for/fold ([scene scene])
-                  ([pict (in-list picts)]
-                   [i (in-naturals 1)])
-                (pin-over scene (* i step-x) (* i step-y) (cc-superimpose bbox pict)))])
-        ;; Can't continue a cascade, since depends on number of picts.
-        ;; FIXME: If step is given rather than computed, then we can.
-        newscene))))
-
-;; cascade : ... -> placer
-(define (cascade [step-x0 'auto] [step-y0 'auto])
-  ;; Auto cascade by largest bounding box.
-  ;; FIXME: add align arg, determines position of each pict w/in bbox
-  (new cascade% (step-x0 step-x0) (step-y0 step-y0)))
-
-(define tile%
-  (class* object% (placer<%>)
-    (init-field cols rows
-                [start-at 0])
-    (super-new)
-
-    (define/public (place scene elems)
-      (for ([e (in-list elems)])
-        (when (real? e) (error 'tile "spacing changes not allowed: ~e" e)))
-      (let* ([picts (filter pict? elems)]
-             [scene-w (pict-width scene)]
-             [scene-h (pict-height scene)]
-             [dx (/ scene-w cols)]
-             [dy (/ scene-h rows)]
-             [newscene
-              (for/fold ([scene scene])
-                  ([pict (in-list picts)]
-                   [i (in-naturals start-at)])
-                (let ([r (quotient i cols)]
-                      [c (remainder i cols)])
-                  (pin-over/align scene
-                                  (+ (/ dx 2) (* c dx))
-                                  (+ (/ dy 2) (* r dy))
-                                  'c 'c pict)))])
-        (mk-ppict newscene
-                  (new tile%
-                       (cols cols)
-                       (rows rows)
-                       (start-at (+ start-at (length picts)))))))))
-
-(define (tile cols rows)
-  (new tile% (cols cols) (rows rows)))
 
 ;; at-find-pict : ... -> placer
 (define (at-find-pict path
@@ -271,37 +246,107 @@ In a placer function's arguments:
   (define valign (align->v align))
   (new refpoint%
        (xa abs-x) (ya abs-y) (sep sep)
-       (depxy (lambda (p)
+       (depxy (lambda (p iw ih ix iy)
                 (let ([pict-path (if (tag-path? path) (find-tag p path) path)])
                   (unless pict-path
                     (error 'at-find-path "failed finding ~e" path))
                   (find p pict-path))))
        (halign halign) (valign valign) (compose compose)))
 
-;; ----
+;; ----------------------------------------
 
-;; apply-compose : compose real (listof (U #f pict real)) -> (values pict real)
+(define cascade%
+  (class placer-base%
+    (init-field step-x0 step-y0)
+    (super-new)
+
+    (define/override (place* scene iw ih ix iy elems)
+      (for ([e (in-list elems)])
+        (when (real? e) (error 'cascade "spacing changes not allowed: ~e" e)))
+      (let* ([picts (filter pict? elems)]
+             [max-w (apply max 1 (map pict-width picts))]  ;; avoid 0
+             [max-h (apply max 1 (map pict-height picts))] ;; avoid 0
+             [auto-step-x (/ (- iw max-w) (+ 1 (length picts)))]
+             [auto-step-y (/ (- ih max-h) (+ 1 (length picts)))]
+             [step-x (if (eq? step-x0 'auto) auto-step-x step-x0)]
+             [step-y (if (eq? step-y0 'auto) auto-step-y step-y0)]
+             [bbox (blank max-w max-h)]
+             [newscene
+              (for/fold ([scene scene])
+                  ([pict (in-list picts)]
+                   [i (in-naturals 1)])
+                (pin-over scene
+                          (+ ix (* i step-x)) (+ iy (* i step-y))
+                          (cc-superimpose bbox pict)))])
+        ;; Can't continue a cascade, since depends on number of picts.
+        ;; FIXME: If step is given rather than computed, then we can.
+        newscene))))
+
+;; cascade : ... -> placer
+(define (cascade [step-x0 'auto] [step-y0 'auto])
+  ;; Auto cascade by largest bounding box.
+  ;; FIXME: add align arg, determines position of each pict w/in bbox
+  (new cascade% (step-x0 step-x0) (step-y0 step-y0)))
+
+(define tile%
+  (class placer-base%
+    (init-field cols rows
+                [start-at 0])
+    (super-new)
+
+    (define/override (place* scene scene-w scene-h ix iy elems)
+      (for ([e (in-list elems)])
+        (when (real? e) (error 'tile "spacing changes not allowed: ~e" e)))
+      (let* ([picts (filter pict? elems)]
+             [dx (/ scene-w cols)]
+             [dy (/ scene-h rows)]
+             [newscene
+              (for/fold ([scene scene])
+                  ([pict (in-list picts)]
+                   [i (in-naturals start-at)])
+                (let ([r (quotient i cols)]
+                      [c (remainder i cols)])
+                  (pin-over/align scene
+                                  (+ ix (/ dx 2) (* c dx))
+                                  (+ ix (/ dy 2) (* r dy))
+                                  'c 'c pict)))])
+        (mk-ppict newscene
+                  (new tile%
+                       (cols cols)
+                       (rows rows)
+                       (start-at (+ start-at (length picts)))))))))
+
+(define (tile cols rows)
+  (new tile% (cols cols) (rows rows)))
+
+;; ------------------------------------------------------------
+
+;; apply-compose : Compose Real (Listof CoreElement) -> (values Pict Real)
 ;; Returns composed pict and last given separator num in elems (or init-sep, if none)
 (define (apply-compose compose init-sep elems)
   (define (start-loop sep elems)
-    (cond [(and (pair? elems) (real? (car elems)))
-           (start-loop (car elems) (cdr elems))]
-          [(and (pair? elems) (pict? (car elems)))
-           (join-loop (car elems) sep (cdr elems))]
-          [(null? elems)
-           (blank 0)]))
+    (match elems
+      [(cons (? real? new-sep) elems)
+       (start-loop new-sep elems)]
+      [(cons (? pict? p) elems)
+       (join-loop p sep elems)]
+      ['() (values (blank 0) sep)]))
   (define (join-loop base sep elems)
-    (cond [(and (pair? elems) (real? (car elems)))
-           (join-loop base (car elems) (cdr elems))]
-          [(and (pair? elems) (pict? (car elems)))
-           (join-loop (compose sep base (car elems))
-                      sep
-                      (cdr elems))]
-          [(null? elems) base]))
-  (values (start-loop init-sep (filter values elems))
-          (last (cons init-sep (filter real? elems)))))
+    (match elems
+      [(cons (? real? new-sep) elems)
+       (join-loop base new-sep elems)]
+      [(cons (? pict? p) elems)
+       (join-loop (compose sep base p) sep elems)]
+      ['() (values base sep)]))
+  (start-loop init-sep (filter values elems)))
 
-;; ----
+(define (rel/abs? v)
+  (match v
+    [(? real?) #t]
+    [(list (? real?) (? real?)) #t]
+    [_ #f]))
 
-(define (ghost* x)
-  (if (pict? x) (ghost x) x))
+(define (convert-rel+abs u relto)
+  (match u
+    [(? real?) (* u relto)]
+    [(list (? real? ur) (? real? ua)) (+ ua (* ur relto))]))
