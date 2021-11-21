@@ -337,6 +337,40 @@ TODO
 
 ;; ------------------------------------------------------------
 
+(define overflow-placer%
+  (class* placer-base% (associative-placer<%>)
+    (init-field align overflow-align sep)
+    (super-new)
+
+    (define/public (get-sep) sep)
+
+    (define/public (check-associative-vcompose)
+      (let ([halign (align->h align)])
+        (and (eq? halign (align->h overflow-align)) (align->v align))))
+
+    (define/public (compose-elements elems [align align])
+      (define compose (halign->vcompose (align->h align)))
+      (apply-compose compose sep elems))
+
+    (define/override (place* scene iw ih ix iy elems)
+      (define (go newpict align)
+        (let ([halign (align->h align)] [valign (align->v align)])
+          (define x (+ ix (* iw (align->frac halign))))
+          (define y (+ iy (* ih (align->frac valign))))
+          (pin-over/align scene x y (align->h align) (align->v align) newpict)))
+      (define-values (newpict newsep) (compose-elements elems align))
+      (cond [(<= (pict-height newpict) ih)
+             (go newpict align)]
+            [else
+             (define-values (newpict newsep) (compose-elements elems overflow-align))
+             (go newpict overflow-align)]))
+    ))
+
+(define (overflow-placer [align 'cc] [overflow-align 'ct] #:sep [sep 0])
+  (new overflow-placer% (align align) (overflow-align overflow-align) (sep sep)))
+
+;; ------------------------------------------------------------
+
 ;; apply-compose : Compose Real (Listof CoreElement) -> (values Pict Real)
 ;; Returns composed pict and last given separator num in elems (or init-sep, if none)
 (define (apply-compose compose init-sep elems)

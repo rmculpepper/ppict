@@ -355,6 +355,31 @@ Returns a placer that places picts by tiling them in a grid
 ]
 }
 
+@defproc[(overflow-placer [align align/c 'cc]
+                          [overflow-align align/c 'ct]
+                          [#:sep sep real? 0])
+         placer?]{
+
+Returns a placer that places like @racket[(grid 1 1 1 1 align #:sep
+sep)] if the picts to be placed fit vertically in the available space;
+otherwise, it places them like @racket[(grid 1 1 1 1 overflow-align
+#:sep sep)].
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (overflow-placer)
+          (circle 100) (circle 80))
+(ppict-do base
+          #:go (overflow-placer)
+          (circle 100) (circle 80) (circle 60))
+(ppict-do base
+          #:go (overflow-placer 'cc 'rb)
+          (circle 100) (circle 80) (circle 60))
+]
+
+@history[#:added "1.3"]}
+
+
 @defproc[(at-find-pict [find-path (or/c tag-path? pict-path?)]
                        [finder procedure? cc-find]
                        [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
