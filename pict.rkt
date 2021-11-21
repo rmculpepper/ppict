@@ -74,6 +74,9 @@
  [tile
   (-> exact-positive-integer? exact-positive-integer?
       placer?)]
+ [overflow-placer
+  (->* [] [align/c align/c #:sep real?]
+       placer?)]
  [at-find-pict
   (->* ((or/c tag-path? pict-path?))
        (procedure?
