@@ -68,6 +68,11 @@
         #:sep real?
         #:compose procedure?)
        refpoint-placer?)]
+ [aligned-placer
+  (->* [align/c]
+       [#:sep real?
+        #:compose procedure?]
+       refpoint-placer?)]
  [cascade
   (->* ()
        ((or/c real? 'auto) (or/c real? 'auto))

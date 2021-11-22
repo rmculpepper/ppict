@@ -304,6 +304,27 @@ none-for-me-thanks
 @history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}]
 }
 
+@defproc[(aligned-placer [align align/c]
+                         [#:sep sep real? 0]
+                         [#:compose compose procedure? (halign->vcompose (align->v align))])
+         refpoint-placer?]{
+
+Places picts aligned according to @racket[align] with respect to the
+whole available area.
+
+Equivalent to @racket[(grid 1 1 1 1 align #:sep sep #:compose compose)].
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (aligned-placer 'rc)
+          (disk 50 #:color "blue")
+          (filled-rectangle 40 20 #:color "green")
+          #:go (aligned-placer 'cb)
+          (disk 80 #:color "red"))
+]
+
+@history[#:added "1.3"]}
+
 @defproc[(cascade [step-x (or/c real? 'auto) 'auto]
                   [step-y (or/c real? 'auto) 'auto])
          placer?]{
@@ -360,15 +381,15 @@ Returns a placer that places picts by tiling them in a grid
                           [#:sep sep real? 0])
          placer?]{
 
-Returns a placer that places like @racket[(grid 1 1 1 1 align #:sep
+Returns a placer that places like @racket[(aligned-placer align #:sep
 sep)] if the picts to be placed fit vertically in the available space;
-otherwise, it places them like @racket[(grid 1 1 1 1 overflow-align
+otherwise, it places them like @racket[(aligned-placer overflow-align
 #:sep sep)].
 
 @examples[#:eval the-eval
 (ppict-do base
           #:go (overflow-placer)
-          (circle 100) (circle 80))
+          (circle 80) (circle 60))
 (ppict-do base
           #:go (overflow-placer)
           (circle 100) (circle 80) (circle 60))

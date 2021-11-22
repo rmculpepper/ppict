@@ -229,6 +229,11 @@ TODO
                         (+ iy (* yfrac ih)))))
        (halign halign) (valign valign) (compose compose)))
 
+(define (aligned-placer align
+                        #:sep [sep 0]
+                        #:compose [compose (halign->vcompose (align->h align))])
+  (grid 1 1 1 1 align #:sep sep #:compose compose))
+
 (define (coord xfrac yfrac [align 'cc]
                #:abs-x [abs-x 0]
                #:abs-y [abs-y 0]
