@@ -211,21 +211,22 @@ Returns @racket[#t] if @racket[x] is a placer based on a reference
 point, @racket[#f] otherwise.
 }
 
-@defproc[(coord [rel-x real?] 
-                [rel-y real?]
-                [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
+@defproc[(coord [x rel/abs?] 
+                [y rel/abs?]
+                [align align/c 'cc]
                 [#:abs-x abs-x real? 0]
                 [#:abs-y abs-y real? 0]
                 [#:sep sep real? 0]
-                [#:compose composer procedure? #, @elem{computed from @racket[align]}])
+                [#:compose composer procedure? (halign->vcompose (align->h align))])
          refpoint-placer?]{
 
-Returns a placer that places picts according to @racket[rel-x] and
-@racket[rel-y], which are interpeted as fractions of the width and
-height of the base @tech{progressive pict}. That is, @racket[0],
-@racket[0] is the top left corner of the base's bounding box, and
-@racket[1], @racket[1] is the bottom right. Then @racket[abs-x] and
-@racket[abs-y] offsets are added to get the final reference point.
+Returns a placer that places picts according to @racket[x] and
+@racket[y], which are interpeted relative to the width and height of
+the base @tech{progressive pict} (see @racket[rel/abs?]). That is,
+(@racket[0], @racket[0]) is the top left corner of the base's bounding
+box, and (@racket[1], @racket[1]) is the bottom right. Then
+@racket[abs-x] and @racket[abs-y] offsets are added to get the final
+reference point.
 
 Additions are aligned according to @racket[align], a symbol whose name
 consists of a horizontal alignment character followed by a vertical
@@ -262,18 +263,19 @@ initially @racket[sep].
           (circle 30))
 ]
 
-@history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}]
-}
+@history[#:changed "1.1" @elem{Added @racket[#:sep] argument.}
+         #:changed "1.3" @elem{Changed the contracts of @racket[x] and
+         @racket[y] from @racket[real?] to @racket[rel/abs?].}]}
 
 @defproc[(grid [cols exact-positive-integer?]
                [rows exact-positive-integer?]
                [col exact-integer?]
                [row exact-integer?]
-               [align (or/c 'lt 'ct 'rt 'lc 'cc 'rc 'lb 'cb 'rb) 'cc]
+               [align align/c 'cc]
                [#:abs-x abs-x real? 0]
                [#:abs-y abs-y real? 0]
                [#:sep sep real? 0]
-               [#:compose composer procedure? #, @elem{computed from @racket[align]}])
+               [#:compose composer procedure? (halign->vcompose (align->h align))])
          refpoint-placer?]{
 
 Returns a placer that places picts according to a position in a
@@ -391,9 +393,24 @@ reference point is computed by @racket[y-placer].
           #:go (merge-refpoints (coord 1 0 'rc)
                                 (at-find-pict 'red-fish))
           (text "red fish"))
-]
-}
+]}
 
+@defproc[(rel/abs? [v any/c]) boolean?]{
+
+Equivalent to @racket[(or/c real? (list/c real? real?))].
+
+If @racket[v] is a number (@racket[real?]), then it is interpreted as a fraction
+of the relevant pict's width or height. That is, @racket[0] is interpreted as
+the left or top edge of the pict and @racket[1] is interpreted as the right or
+bottom edge.
+
+If @racket[v] is @racket[(list _rel _abs)], then @racket[_rel] is interpreted
+relative to the pict's dimension and added to the absolute pict units
+@racket[_abs]. For example, the @racket['(1 -20)] as an X position means
+@racket[(+ (pict-width _the-pict) -20)], or 20 units left of the right edge of
+the pict.
+
+@history[#:added "1.3"]}
 
 @; ============================================================
 @section[#:tag "pslide"]{Progressive Slides}
@@ -596,9 +613,9 @@ Returns the alignment consisting of @racket[halign] and
 
 @bold{Deprecated: } Use @racket[align->x] and @racket[align->y] instead.
 
-Computes the fraction corresponding to an alignment where the top-left
-is @racket[0]. If @racket[a] is @racket['bl] or @racket['tl], an
-exception is raised.
+Computes the fraction corresponding to an alignment where the top-left is
+@racket[0]. The alignments @racket['bl] and @racket['tl] are treated the same as
+@racket['b].
 }
 
 @deftogether[[
