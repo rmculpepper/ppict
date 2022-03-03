@@ -224,16 +224,14 @@ TODO
                #:abs-y [abs-y 0]
                #:sep [sep 0]
                #:compose [compose (halign->vcompose (align->h align))])
-  (define (convert u abs-u)
-    (match u
-      [(? real? u) (values u abs-u)]
-      [(list (? real? ur) (? real? ua)) (values u (+ abs-u ua))]))
-  (define-values (xr xa) (convert xfrac abs-x))
-  (define-values (yr ya) (convert yfrac abs-y))
+  (define-values (xr xa) (convert-rel+abs* xfrac))
+  (define-values (yr ya) (convert-rel+abs* yfrac))
   (define halign (align->h align))
   (define valign (align->v align))
   (new refpoint%
-       (xa xa) (ya ya) (sep sep)
+       (xa (+ abs-x xa))
+       (ya (+ abs-y ya))
+       (sep sep)
        (depxy (lambda (p iw ih ix iy)
                 (values (+ ix (* xr iw))
                         (+ iy (* yr ih)))))
@@ -379,13 +377,27 @@ TODO
       ['() (values base sep)]))
   (start-loop init-sep (filter values elems)))
 
-(define (rel/abs? v)
-  (match v
-    [(? real?) #t]
-    [(list (? real?) (? real?)) #t]
-    [_ #f]))
+(define (rel/abs-length? v)
+  (or (real? v)
+      (and (list? v) (pair? v)
+           (let loop ([v v])
+             (match v
+               [(list* (? real?) (or 'rel '% 'px) v) (loop v)]
+               ['() #t]
+               [_ #f])))))
 
+;; convert-rel+abs : Rel/Abs Real -> Real
 (define (convert-rel+abs u relto)
+  (define-values (rel px) (convert-rel+abs* u))
+  (+ (* rel relto) px))
+
+;; convert-rel+abs* : Rel/Abs -> (values Real Real)
+(define (convert-rel+abs* u)
   (match u
-    [(? real?) (* u relto)]
-    [(list (? real? ur) (? real? ua)) (+ ua (* ur relto))]))
+    [(? real? rel) (values rel 0)]
+    [_ (let loop ([u u] [acc-rel 0] [acc-px 0])
+         (match u
+           [(list* (? real? rel) 'rel u) (loop u (+ acc-rel rel) acc-px)]
+           [(list* (? real? pct) '%   u) (loop u (+ acc-rel (/ pct 100)) acc-px)]
+           [(list* (? real? px)  'px  u) (loop u acc-rel (+ acc-px px))]
+           ['() (values acc-rel acc-px)]))]))

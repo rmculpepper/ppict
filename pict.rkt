@@ -33,7 +33,8 @@
 
 (provide ppict?
          placer?
-         refpoint-placer?)
+         refpoint-placer?
+         rel/abs-length?)
 
 (provide/contract
  [ppict-go
@@ -51,7 +52,7 @@
  [ppict-placer
   (-> ppict? placer?)]
  [coord
-  (->* (real? real?)
+  (->* (rel/abs-length? rel/abs-length?)
        (align/c
         #:abs-x real?
         #:abs-y real?
