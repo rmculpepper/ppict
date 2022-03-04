@@ -1,7 +1,7 @@
 #lang scribble/doc
 @(require scribble/base
           scribble/manual
-          scribble/eval
+          scribble/examples
           (for-label racket/base
                      slideshow
                      ppict/pict
