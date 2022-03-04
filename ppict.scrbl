@@ -820,13 +820,16 @@ Returns a zone that selects the area with top-left corner
 @defproc[(grid-zone [cols exact-positive-integer?]
                     [rows exact-positive-integer?]
                     [col exact-integer?]
-                    [row exact-integer?])
+                    [row exact-integer?]
+                    [width-cols (>=/c 0) 1]
+                    [height-rows (>=/c 0) 1])
          zone?]{
 
 Returns a zone that divides the enclosing zone into a grid with
 @racket[cols] columns and @racket[rows] rows, and then selects the
-area at row @racket[row] and columnn @racket[col]. The @racket[row]
-and @racket[col] indexes are numbered starting at @racket[1].
+area at row @racket[row] and column @racket[col] and extending
+@racket[width-cols] by @racket[height-rows]. The @racket[row] and
+@racket[col] indexes are numbered starting at @racket[1].
 
 @examples[#:eval the-eval
 (ppict-do base

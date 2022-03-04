@@ -470,11 +470,12 @@ TODO
     (values (max 0 (- xx2 xx1)) (max 0 (- yy2 yy1)) (+ ix xx1) (+ iy yy1)))
   (make-zone coord-zone-fun))
 
-(define (grid-zone cols rows col row)
+(define (grid-zone cols rows col row [wcols 1] [hrows 1])
   (define (grid-zone-fun p iw ih ix iy)
     (define zw (/ iw cols))
     (define zh (/ iw rows))
-    (values zw zh (+ ix (* zw (sub1 col))) (+ iy (* zh (sub1 row)))))
+    (values (* wcols zw) (* hrows zh)
+            (+ ix (* zw (sub1 col))) (+ iy (* zh (sub1 row)))))
   (make-zone grid-zone-fun))
 
 (define (placer-zone refpoint w h)
