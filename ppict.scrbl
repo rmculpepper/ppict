@@ -7,13 +7,14 @@
                      ppict/pict
                      ppict/tag
                      ppict/align
+                     ppict/zone
                      ppict/slideshow))
 
 @title[#:tag "ppict"]{Progressive Picts and Slides}
 @author[@author+email["Ryan Culpepper" "ryanc@racket-lang.org"]]
 
 @(define the-eval (make-base-eval))
-@(the-eval '(require pict ppict/pict ppict/tag ppict/align))
+@(the-eval '(require pict ppict/pict ppict/tag ppict/align ppict/zone))
 
 @defmodule[ppict/2]
 
@@ -692,5 +693,121 @@ the @racket[pict]'s corresponding dimension is preserved.
 ]
 
 @history[#:added "1.3"]}
+
+@; ============================================================
+@section[#:tag "zone"]{Placers and Zones}
+
+@defmodule[ppict/zone]
+
+@history[#:added "1.3"]
+
+@defproc[(zone? [v any/c]) boolean?]{
+
+Returns @racket[#t] if @racket[v] is a zone, @racket[#f] otherwise.
+}
+
+@defproc[(subzone [inner-zone zone?]
+                  [outer-zone zone?])
+         zone?]{
+
+Returns a zone that corresponds to @racket[inner-zone] relative to
+@racket[outer-zone].
+}
+
+@defproc[(subplacer [placer placer?]
+                    [zone zone?])
+         placer?]{
+
+Returns a placer that places picts like @racket[placer] relative to
+the zone defined by @racket[zone].
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (subplacer (cascade) (grid-zone 2 2 1 2))
+          (colorize (filled-rectangle 40 40) "blue")
+          (colorize (disk 40) "red")
+          #:go (subplacer (coord 1/2 1/2 'cc) (coord-zone 1/2 0 1 1))
+          (text "hello"))
+]}
+
+@defproc[(make-zone [f (-> real? real? real? real? (values real? real? real? real?))])
+         zone?]{
+
+Creates a zone, using @racket[f] to select a subarea of some initial area. The
+initial area may cover the entire base pict, or it may be a subarea selected by
+some outer zone. The function @racket[f] is called on the base pict and the
+area's width, height, and x and y offsets. Its result must be four values,
+interpreted as the selected subarea's width, height, and x and y offsets.
+
+A typical @racket[f] function ignores the base pict argument, but it can be used
+to find subpict locations (in which case the initial area might be ignored). See
+also @racket[placer-zone].
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (subplacer (cascade) (grid-zone 2 2 1 2))
+          (colorize (filled-rectangle 40 40) "blue")
+          (colorize (disk 40) "red")
+          #:go (subplacer (coord 1/2 1/2 'cc)
+                          (make-zone (code:comment "same as (coord-zone 1/2 0 1 1)")
+                           (lambda (p w h x y)
+                             (values (/ w 2) h (+ x (/ w 2)) y))))
+          (text "hello"))
+]}
+
+@defproc[(coord-zone [x1 rel/abs?]
+                     [y1 rel/abs?]
+                     [x2 rel/abs?]
+                     [y2 rel/abs?])
+         zone?]{
+
+Returns a zone that selects the area with top-left corner
+(@racket[x1], @racket[y1]) and bottom-right corner (@racket[x2],
+@racket[y2]), relative to the enclosing zone.
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (subplacer (coord 1/2 1/2 'cc) (coord-zone 1/2 0 1 1/2))
+          (text "here!"))
+]}
+
+@defproc[(grid-zone [cols exact-positive-integer?]
+                    [rows exact-positive-integer?]
+                    [col exact-integer?]
+                    [row exact-integer?])
+         zone?]{
+
+Returns a zone that divides the enclosing zone into a grid with
+@racket[cols] columns and @racket[rows] rows, and then selects the
+area at row @racket[row] and columnn @racket[col]. The @racket[row]
+and @racket[col] indexes are numbered starting at @racket[1].
+
+@examples[#:eval the-eval
+(ppict-do base
+          #:go (subplacer (coord 1/2 1/2 'cc) (grid-zone 2 2 2 1))
+          (text "here!"))
+]}
+
+@defproc[(placer-zone [placer refpoint-placer?]
+                      [w rel/abs?]
+                      [h rel/abs?])
+         zone?]{
+
+Returns a zone that occupies the area where @racket[placer] would
+place a blank pict with the dimensions specified by @racket[w] and
+@racket[h].
+
+@examples[#:eval the-eval
+(define red-zone (placer-zone (at-find-pict 'red-fish rc-find 'lc) 1/4 1/4))
+(ppict-do base
+          #:go (cascade)
+          (tag-pict (standard-fish 40 20 #:direction 'right #:color "red") 'red-fish)
+          (tag-pict (standard-fish 50 30 #:direction 'left #:color "blue") 'blue-fish)
+          #:go (subplacer (coord 0 0 'lt) red-zone)
+          (text "red") (colorize (text "red") "red")
+          #:go (subplacer (coord 1 1 'rb) red-zone)
+          (text "fish") (colorize (text "fish") "red"))
+]}
+
 
 @(close-eval the-eval)

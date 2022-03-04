@@ -97,6 +97,11 @@ TODO
     place*      ;; Pict Real Real Real Real (Listof CoreElement) -> Pict
     ))
 
+(define placer/within-zone<%>
+  (interface (placer<%>)
+    within-zone ;; Zone -> Placer
+    ))
+
 (define placer-base%
   (class* object% (placer<%>)
     (super-new)
@@ -144,7 +149,7 @@ TODO
     ))
 
 (define refpoint%
-  (class* placer-base% (associative-placer<%>)
+  (class* placer-base% (placer/within-zone<%> associative-placer<%>)
     (init-field xa ya depxy halign valign compose
                 [sep 0]
                 [cont? #f])
@@ -194,6 +199,16 @@ TODO
                     (define-values (myx myy) (get-xy p iw ih ix iy))
                     (define-values (ox oy) (send other get-xy p iw ih ix iy))
                     (values myx oy)))
+           (halign halign) (valign valign) (compose compose) (sep sep) (cont? cont?)))
+
+    (define/public (within-zone z)
+      (new refpoint%
+           (xa xa) (ya ya)
+           (depxy (and depxy
+                       (let ([depxy depxy])
+                         (lambda (p iw ih ix iy)
+                           (define-values (zw zh zx zy) (send z get-zone* p iw ih ix iy))
+                           (depxy p zw zh zx zy)))))
            (halign halign) (valign valign) (compose compose) (sep sep) (cont? cont?)))
     ))
 
@@ -247,6 +262,7 @@ TODO
   (new refpoint%
        (xa abs-x) (ya abs-y) (sep sep)
        (depxy (lambda (p iw ih ix iy)
+                ;; Note: ignores zone context (i[whxy]) completely
                 (let ([pict-path (if (tag-path? path) (find-tag p path) path)])
                   (unless pict-path
                     (error 'at-find-path "failed finding ~e" path))
@@ -350,3 +366,84 @@ TODO
   (match u
     [(? real?) (* u relto)]
     [(list (? real? ur) (? real? ua)) (+ ua (* ur relto))]))
+
+;; ------------------------------------------------------------
+
+(define zone<%>
+  (interface ()
+    get-zone    ;; Pict -> (values Real Real Real Real)
+    get-zone*   ;; Pict Real Real Real Real -> (values Real Real Real Real)
+    within-zone ;; Zone -> Zone
+    ))
+
+(define zone%
+  (class object%
+    (init-field fs)  ;; (Listof ZoneFunction)
+    (super-new)
+
+    ;; A ZoneFunction is (Pict Real Real Real Real -> (values Real Real Real Real))
+
+    (define/public (get-zone p)
+      (get-zone* p (pict-width p) (pict-height p) 0 0))
+
+    (define/public (get-zone* p w h x y)
+      (for/fold ([w w] [h h] [x x] [y y]) ([f (in-list fs)])
+        (f p w h x y)))
+
+    ;; within-zone : ZoneFunction -> Zone
+    (define/public (within-zone z)
+      ;; Interpret this with respect to an outer zone => put the outer
+      ;; zone's functions at the beginning of the list.
+      (new zone% (fs (append (get-field fs z) fs))))
+    ))
+
+(define (zone? v) (is-a? v zone%))
+
+(define (make-zone f) (new zone% (fs (list f))))
+
+(define (subzone inner outer)
+  (send inner within-zone outer))
+
+(define placer-in-zone%
+  (class* placer-base% (placer/within-zone<%>)
+    (init-field placer zone)
+    (super-new)
+
+    (define/override (place* scene iw ih ix iy elems)
+      (define-values (zw zh zx zy) (send zone get-zone* scene iw ih ix iy))
+      (send placer place* scene zw zh zx zy elems))
+
+    (define/public (within-zone outer)
+      (new this% (placer placer) (zone (send zone within-zone outer))))
+    ))
+
+(define (subplacer placer zone)
+  (cond [(is-a? placer placer/within-zone<%>)
+         (send placer within-zone zone)]
+        [else (new placer-in-zone% (placer placer) (zone zone))]))
+
+(define (coord-zone x1 y1 x2 y2)
+  (define (coord-zone-fun p iw ih ix iy)
+    (define xx1 (convert-rel+abs x1 iw))
+    (define yy1 (convert-rel+abs y1 ih))
+    (define xx2 (convert-rel+abs x2 iw))
+    (define yy2 (convert-rel+abs y2 ih))
+    (values (max 0 (- xx2 xx1)) (max 0 (- yy2 yy1)) (+ ix xx1) (+ iy yy1)))
+  (make-zone coord-zone-fun))
+
+(define (grid-zone cols rows col row)
+  (define (grid-zone-fun p iw ih ix iy)
+    (define zw (/ iw cols))
+    (define zh (/ iw rows))
+    (values zw zh (+ ix (* zw (sub1 col))) (+ iy (* zh (sub1 row)))))
+  (make-zone grid-zone-fun))
+
+(define (placer-zone refpoint w h)
+  (define (placer-zone-fun p iw ih ix iy)
+    (define-values (x y) (send refpoint get-xy p iw ih ix iy))
+    (define ww (convert-rel+abs w (pict-width p)))
+    (define hh (convert-rel+abs h (pict-height p)))
+    (values ww hh
+            (- x (* ww (align->frac (get-field halign refpoint))))
+            (- y (* hh (align->frac (get-field valign refpoint))))))
+  (make-zone placer-zone-fun))
