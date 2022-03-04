@@ -13,8 +13,8 @@
           [coord-zone
            (-> rel/abs-length? rel/abs-length? rel/abs-length? rel/abs-length? zone?)]
           [grid-zone
-           (-> exact-positive-integer? exact-positive-integer?
-               exact-integer? exact-integer?
-               zone?)]
+           (->* [exact-positive-integer? exact-positive-integer? exact-integer? exact-integer?]
+                [(>=/c 0) (>=/c 0)]
+                zone?)]
           [placer-zone
            (-> refpoint-placer? rel/abs-length? rel/abs-length? zone?)]))
