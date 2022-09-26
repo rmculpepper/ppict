@@ -3,6 +3,7 @@
           scribble/manual
           scribble/eval
           (for-label racket/base
+                     racket/contract
                      slideshow
                      ppict/pict
                      ppict/tag
@@ -448,6 +449,42 @@ title, otherwise same as @racket['full-center]}
 ]
 
 @history[#:changed "1.2" @elem{Added the @racket[#:aspect] optional argument.}]
+}
+
+@defproc[(pplay [gen (-> ppict? (real-in 0.0 1.0) pict?)]
+                [#:steps steps exact-positive-integer? (current-play-steps)]
+                [#:delay delay-secs real? 0.05]
+                [#:skip-first? skip-first? any/c #f]
+                [#:title title (or/c string? #f) #f]
+                [#:name name (or/c string? #f) title]
+                [#:aspect aspect aspect? #f]
+                [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto]
+                [#:gap-size real? (current-gap-size)]
+                [#:inset slide-inset? no-inset])
+         void?]{
+Generates @math{@racket[steps]+1} pslides by calling @racket[gen] on a base
+ppict (created by @racket[pslide]) and equally-spaced values from @racket[0.0]
+(inclusive) to @racket[1.0] (exclusive).
+Except for the first slide (which may be skipped), each slide has a timeout of
+@racket[delay-secs], so that the next slide appears automatically.
+
+The @racket[#:steps], @racket[#:delay], and @racket[#:skip-first?]
+options are interpreted the same as for the @racket[play]
+procedure.
+The remaining options are interpreted the same as for
+@racket[pslide].
+
+Example:
+@racketblock[
+  (pplay
+    (lambda (pp n)
+      (ppict-do
+        pp
+        #:go (coord 1/2 1/2)
+        (cellophane (text "HELLO") n))))
+]
+
+@history[#:added "1.3"]
 }
 
 @; ----------------------------------------
