@@ -5,9 +5,10 @@
                      "private/ppict-syntax.rkt")
          racket/contract/base
          slideshow/base
+         (only-in slideshow/play current-play-steps)
          pict
          "private/ppict.rkt")
-(provide pslide)
+(provide pslide pplay)
 
 (define-syntax (pslide stx)
   (syntax-parse stx
@@ -42,6 +43,38 @@
                (lambda (xp)
                  (let ([rpss null])
                    fs.code))))]))
+
+(define (pplay gen
+               #:steps [N (current-play-steps)]
+               #:delay [secs 0.05]
+               #:skip-first? [skip-first? #f]
+               #:title [title #f]
+               #:name [name title]
+               #:aspect [aspect #f]
+               #:layout [layout 'auto]
+               #:gap-size [gap-size (current-gap-size)]
+               #:inset [inset no-inset])
+  (define-syntax-rule (pslide+ timeout n)
+    (pslide #:title title
+            #:name name
+            #:aspect aspect
+            #:layout layout
+            #:gap-size gap-size
+            #:inset inset
+            #:timeout timeout
+            #:set (gen ppict-do-state n)))
+  (unless skip-first?
+    (pslide+ #f 0))
+  (if condense?
+      (skip-slides N)
+      (for ([n (in-list
+                (let ([cnt N])
+                  (let loop ([n cnt])
+                    (if (zero? n)
+                        null
+                        (cons (/ (- cnt -1 n) 1.0 cnt)
+                              (loop (sub1 n)))))))])
+        (pslide+ secs n))))
 
 (define maybe-string/c (or/c string? #f))
 (define layout/c (or/c 'auto 'center 'full-center 'top 'tall))
