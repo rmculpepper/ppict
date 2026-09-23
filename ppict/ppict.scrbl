@@ -468,14 +468,15 @@ dimension and added to the interpretation of @racket[_rel/abs].}
 correspond to display pixels) and added to the interpretation of
 @racket[_rel/abs].}
 
-@item{@racket['()], interpreted as zero.}
+@item{@racket['()], interpreted as zero. Note that if @racket[v] is a list, it
+must contain at least one number-unit pair.}
 
 ]
-Note that if @racket[v] is a list, it must contain at least one number-unit pair.
 
-For example, @racket['(1 rel -20 px)] as an X position relative to
-@racket[_the-pict] is interpreted as @racket[(+ (pict-width _the-pict) -20)], or
-20 units left of @racket[_the-pict]'s right edge.
+For example, if @racket['(1 rel -20 px)] is interpreted as an X position
+relative to @racket[_the-pict], its value is
+@racket[(+ (* 1 (pict-width _the-pict)) -20)],
+or 20 units left of @racket[_the-pict]'s right edge.
 
 @history[#:added "1.3"]}
 
@@ -873,7 +874,8 @@ place a blank pict with the dimensions specified by @racket[w] and
 @racket[h].
 
 @examples[#:eval the-eval
-(define red-zone (placer-zone (at-find-pict 'red-fish rc-find 'lc) 1/4 1/4))
+(define red-zone (placer-zone (at-find-pict 'red-fish rc-find 'lc) 1/2 1/4))
+(define blue-zone (placer-zone (at-find-pict 'blue-fish cc-find 'cc) 1/2 1/4))
 (ppict-do base
           #:go (cascade)
           (tag-pict (standard-fish 40 20 #:direction 'right #:color "red") 'red-fish)
@@ -881,8 +883,11 @@ place a blank pict with the dimensions specified by @racket[w] and
           #:go (subplacer (coord 0 0 'lt) #:in red-zone)
           (text "red")
           #:go (subplacer (coord 1 1 'rb) #:in red-zone)
+          (text "fish")
+          #:go (subplacer (coord 0 0 'lt) #:in blue-zone)
+          (text "blue")
+          #:go (subplacer (coord 1 1 'rb) #:in blue-zone)
           (text "fish"))
 ]}
-
 
 @(close-eval the-eval)
