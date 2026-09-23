@@ -1,3 +1,6 @@
+;; Copyright 2011-2022 Ryan Culpepper
+;; SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #lang racket/base
 (require (for-syntax racket/base)
          racket/list

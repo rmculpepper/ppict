@@ -1,3 +1,6 @@
+;; Copyright 2011-2026 Ryan Culpepper
+;; SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #lang info
 
 (define version "1.3")
@@ -19,3 +22,6 @@
 
 (define scribblings
   '(("ppict.scrbl" () ("Slideshow Libraries"))))
+
+(define license
+  '(Apache-2.0 OR MIT))

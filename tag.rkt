@@ -1,3 +1,6 @@
+;; Copyright 2015-2017 Ryan Culpepper
+;; SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #lang racket/base
 (require racket/contract/base
          pict

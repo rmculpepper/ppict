@@ -1,3 +1,7 @@
+;; Copyright 2014 Jay McCarthy
+;; Copyright 2021 Ryan Culpepper
+;; SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #lang racket/base
 (require pict
          racket/contract/base)
@@ -7,7 +11,7 @@
   [valign->hcompose (-> valign/c procedure?)]
   [pin-over/align (-> pict? real? real? halign/c valign/c pict? pict?)]
   [pin-over/align2 (-> pict? align/c real? real? pict? align/c pict?)]
-  [inset-to/align (-> pict? (or/c real? #f) (or/c real? #f) align/c pict?)]  
+  [inset-to/align (-> pict? (or/c real? #f) (or/c real? #f) align/c pict?)]
   [align->frac (-> (or/c halign/c valign/c) real?)]
   [align->x (-> (or/c halign/c align/c) pict? real?)]
   [align->y (-> (or/c valign/c align/c) pict? real?)]
